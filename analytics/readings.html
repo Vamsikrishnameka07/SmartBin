@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Bin - Previous Readings</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
+    <style>
+        :root {
+            --primary: #4e73df;
+            --primary-light: #a6b9f5;
+            --secondary: #858796;
+            --success: #1cc88a;
+            --success-light: #8ae4c3;
+            --info: #36b9cc;
+            --warning: #f6c23e;
+            --warning-light: #fbe5a8;
+            --danger: #e74a3b;
+            --light: #f8f9fc;
+            --dark: #2e2f3e;
+            --gray: #f0f2f7;
+            --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        body {
+            background-color: var(--gray);
+            color: var(--dark);
+        }
+        
+        .container {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            background: linear-gradient(180deg, var(--primary) 0%, #224abe 100%);
+            color: white;
+            padding: 25px 0;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+            position: relative;
+            z-index: 10;
+        }
+        
+        .sidebar-header {
+            padding: 0 25px 25px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            align-items: center;
+        }
+        
+        .sidebar-header h3 {
+            display: flex;
+            align-items: center;
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+        
+        .sidebar-header h3 i {
+            margin-right: 12px;
+            font-size: 1.6rem;
+            color: #fff;
+        }
+        
+        .sidebar-logo {
+            width: 36px;
+            height: 36px;
+            background-color: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+        }
+        
+        .sidebar-logo i {
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+        
+        .sidebar-menu {
+            padding: 25px 0;
+        }
+        
+        .sidebar-menu ul {
+            list-style: none;
+        }
+        
+        .sidebar-menu li {
+            padding: 12px 25px;
+            transition: var(--transition);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+            border-left: 4px solid transparent;
+        }
+        
+        .sidebar-menu li:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .sidebar-menu li.active {
+            background-color: rgba(255, 255, 255, 0.15);
+            border-left: 4px solid white;
+        }
+        
+        .sidebar-menu li i {
+            margin-right: 12px;
+            width: 20px;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+        
+        /* Main Content */
+        .main-content {
+            padding: 25px;
+            background-color: var(--gray);
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+        }
+        
+        .header h1 {
+            color: var(--dark);
+            font-size: 1.8rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+        
+        .header h1 i {
+            margin-right: 12px;
+            color: var(--primary);
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            background: white;
+            padding: 8px 15px;
+            border-radius: 30px;
+            box-shadow: var(--card-shadow);
+        }
+        
+        .user-info span {
+            margin-right: 10px;
+            font-weight: 500;
+        }
+        
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: var(--primary-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            font-weight: 600;
+        }
+        
+        /* Analytics Layout */
+        .analytics-container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 25px;
+        }
+        
+        .dates-list {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: var(--card-shadow);
+            max-height: calc(100vh - 180px);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            transition: var(--transition);
+        }
+        
+        .dates-list:hover {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .dates-list h3 {
+            color: var(--dark);
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e3e6f0;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .dates-list h3 i {
+            margin-right: 12px;
+            color: var(--primary);
+        }
+        
+        .date-items-container {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column-reverse;
+        }
+        
+        .date-item {
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            border-left: 3px solid transparent;
+            background-color: var(--light);
+        }
+        
+        .date-item:hover {
+            background-color: var(--primary-light);
+            color: white;
+        }
+        
+        .date-item.active {
+            background-color: var(--primary);
+            color: white;
+            border-left: 3px solid white;
+        }
+        
+        .data-display {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: var(--card-shadow);
+            transition: var(--transition);
+        }
+        
+        .data-display:hover {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .data-display h3 {
+            color: var(--dark);
+            margin-bottom: 25px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .data-display h3 i {
+            margin-right: 12px;
+            color: var(--primary);
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .data-table th, .data-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e3e6f0;
+        }
+        
+        .data-table th {
+            background-color: var(--light);
+            color: var(--dark);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.5px;
+        }
+        
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .data-table tr:hover {
+            background-color: rgba(78, 115, 223, 0.05);
+        }
+        
+        .data-table td:first-child {
+            font-weight: 500;
+        }
+        
+        /* Loading and error states */
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            color: var(--danger);
+            text-align: center;
+            padding: 20px;
+            background-color: rgba(231, 74, 59, 0.1);
+            border-radius: 8px;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: var(--secondary);
+            background-color: rgba(133, 135, 150, 0.1);
+            border-radius: 8px;
+        }
+        
+        .no-data i {
+            font-size: 2rem;
+            margin-bottom: 15px;
+            color: var(--secondary);
+        }
+        
+        /* Responsive */
+        @media (max-width: 992px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                display: none;
+            }
+            
+            .analytics-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .user-info {
+                margin-top: 15px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 15px;
+            }
+            
+            .dates-list, .data-display {
+                padding: 20px;
+            }
+        }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .dates-list {
+            animation: fadeIn 0.5s ease forwards;
+        }
+        
+        .data-display {
+            animation: fadeIn 0.5s ease 0.2s forwards;
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <i class="fas fa-recycle"></i>
+                </div>
+                <h3>SmartBin</h3>
+            </div>
+            <div class="sidebar-menu">
+                <ul>
+                    <li><i class="fas fa-tachometer-alt"></i> Dashboard</li>
+                    <li class="active"><i class="fas fa-history"></i> Previous Readings</li>
+                    <li><i class="fas fa-chart-line"></i> Analytics</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h1><i class="fas fa-history"></i> Previous Readings</h1>
+                <div class="user-info">
+                    <span>Admin</span>
+                    <div class="user-avatar">A</div>
+                </div>
+            </div>
+            
+            <div class="analytics-container">
+                <!-- Dates List -->
+                <div class="dates-list">
+                    <h3><i class="fas fa-calendar-alt"></i> Available Dates</h3>
+                    <div id="dates-container">
+                        <div class="date-items-container">
+                            <div class="loading">
+                                <div class="loader"></div>
+                                <p>Loading dates...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Data Display -->
+                <div class="data-display">
+                    <h3><i class="fas fa-database"></i> Sensor Data</h3>
+                    <div id="data-container">
+                        <div class="no-data">
+                            <i class="fas fa-database"></i>
+                            <p>Select a date to view sensor data</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDkXl-uepyXvaumUDgBaCiWNVmqQTZLjms",
+            authDomain: "smartbinmanagemanent.firebaseapp.com",
+            databaseURL: "https://smartbinmanagemanent-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "smartbinmanagemanent",
+            storageBucket: "smartbinmanagemanent.appspot.com",
+            messagingSenderId: "254239092405",
+            appId: "1:254239092405:web:776a578dbca8121a95d8fc",
+            measurementId: "G-E5XX0BTYZ8"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        // Reference to your data
+        const binRef = database.ref('BIN1/sensorData/readings');
+        
+        // Function to format the timestamp to readable date
+        function formatDate(timestamp) {
+            const parts = timestamp.split('_');
+            const dateParts = parts[0].split('-');
+            
+            const date = new Date(
+                parseInt(dateParts[0]),
+                parseInt(dateParts[1]) - 1,
+                parseInt(dateParts[2])
+            );
+            
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+        
+        // Function to format the time
+        function formatTime(timestamp) {
+            const parts = timestamp.split('_');
+            const timeParts = parts[1].split('-');
+            return `${timeParts[0]}:${timeParts[1]}:${timeParts[2]}`;
+        }
+        
+        // Function to load all available dates
+        function loadDates() {
+            binRef.once('value', (snapshot) => {
+                const data = snapshot.val();
+                const dateItemsContainer = document.querySelector('.date-items-container');
+                
+                if (!data) {
+                    dateItemsContainer.innerHTML = '<div class="no-data">No data available</div>';
+                    return;
+                }
+                
+                // Get all date keys and sort them (oldest first)
+                const dates = Object.keys(data).sort((a, b) => {
+                    return new Date(a.replace(/_/g, ' ')) - new Date(b.replace(/_/g, ' '));
+                });
+                
+                if (dates.length === 0) {
+                    dateItemsContainer.innerHTML = '<div class="no-data">No dates found</div>';
+                    return;
+                }
+                
+                // Clear loading message
+                dateItemsContainer.innerHTML = '';
+                
+                // Create date items
+                dates.forEach(date => {
+                    const dateItem = document.createElement('div');
+                    dateItem.className = 'date-item';
+                    dateItem.textContent = formatDate(date);
+                    dateItem.dataset.date = date;
+                    
+                    dateItem.addEventListener('click', () => {
+                        // Remove active class from all items
+                        document.querySelectorAll('.date-item').forEach(item => {
+                            item.classList.remove('active');
+                        });
+                        
+                        // Add active class to clicked item
+                        dateItem.classList.add('active');
+                        
+                        // Load data for this date
+                        loadDateData(date);
+                    });
+                    
+                    dateItemsContainer.appendChild(dateItem);
+                });
+                
+                // Load data for the first date by default
+                if (dates.length > 0) {
+                    const firstDateItem = dateItemsContainer.lastElementChild;
+                    firstDateItem.classList.add('active');
+                    loadDateData(dates[0]);
+                }
+                
+            }, (error) => {
+                console.error('Error loading dates:', error);
+                document.querySelector('.date-items-container').innerHTML = 
+                    '<div class="error-message">Error loading dates. Please refresh the page.</div>';
+            });
+        }
+        
+        // Function to load data for a specific date
+        function loadDateData(dateKey) {
+            const dataContainer = document.getElementById('data-container');
+            dataContainer.innerHTML = `
+                <div class="loading">
+                    <div class="loader"></div>
+                    <p>Loading data for ${formatDate(dateKey)}...</p>
+                </div>
+            `;
+            
+            const dateRef = database.ref(`BIN1/sensorData/readings/${dateKey}`);
+            dateRef.once('value', (snapshot) => {
+                const data = snapshot.val();
+                
+                if (!data) {
+                    dataContainer.innerHTML = `
+                        <div class="no-data">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <p>No data available for this date</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Create table HTML
+                let tableHTML = `
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Date</td>
+                                <td>${formatDate(dateKey)}</td>
+                            </tr>
+                            <tr>
+                                <td>Time</td>
+                                <td>${formatTime(dateKey)}</td>
+                            </tr>
+                            <tr>
+                                <td>Bin Level</td>
+                                <td>${data.Bin_level || 'N/A'} cm</td>
+                            </tr>
+                            <tr>
+                                <td>Motion Distance</td>
+                                <td>${data.distance || 'N/A'} cm</td>
+                            </tr>
+                            <tr>
+                                <td>Odor Sensor Value</td>
+                                <td>${data.odorSensorValue || 'N/A'} ppm</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                `;
+                
+                dataContainer.innerHTML = tableHTML;
+                
+            }, (error) => {
+                console.error('Error loading date data:', error);
+                dataContainer.innerHTML = `
+                    <div class="error-message">
+                        Error loading data for ${formatDate(dateKey)}. Please try again.
+                    </div>
+                `;
+            });
+        }
+        
+        // Initialize the page when loaded
+        window.addEventListener('load', () => {
+            // Load all available dates
+            loadDates();
+            
+            // Navigation to dashboard
+            document.querySelector('.sidebar-menu li:nth-child(1)').addEventListener('click', () => {
+                window.location.href = 'index.html';
+            });
+            
+            // Navigation to analytics
+            document.querySelector('.sidebar-menu li:nth-child(3)').addEventListener('click', () => {
+                window.location.href = 'analytics.html';
+            });
+        });
+    </script>
+</body>
+</html>

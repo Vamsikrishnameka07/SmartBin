@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Bin Analytics</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #4e73df;
+            --primary-light: #a6b9f5;
+            --secondary: #858796;
+            --success: #1cc88a;
+            --info: #36b9cc;
+            --warning: #f6c23e;
+            --danger: #e74a3b;
+            --light: #f8f9fc;
+            --dark: #2e2f3e;
+            --gray: #f0f2f7;
+            --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        body {
+            background-color: var(--gray);
+            color: var(--dark);
+        }
+        
+        .container {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+        }
+        
+        /* Sidebar - Enhanced with logo and better styling */
+        .sidebar {
+            background: linear-gradient(180deg, var(--primary) 0%, #224abe 100%);
+            color: white;
+            padding: 25px 0;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+            position: relative;
+            z-index: 10;
+        }
+        
+        .sidebar-header {
+            padding: 0 25px 25px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            align-items: center;
+        }
+        
+        .sidebar-logo {
+            width: 40px;
+            height: 40px;
+            background-color: white;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar-logo i {
+            color: var(--primary);
+            font-size: 1.4rem;
+        }
+        
+        .sidebar-header h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+        
+        .sidebar-menu {
+            padding: 25px 0;
+        }
+        
+        .sidebar-menu ul {
+            list-style: none;
+        }
+        
+        .sidebar-menu li {
+            padding: 12px 25px;
+            transition: var(--transition);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+            border-left: 4px solid transparent;
+        }
+        
+        .sidebar-menu li:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .sidebar-menu li.active {
+            background-color: rgba(255, 255, 255, 0.15);
+            border-left: 4px solid white;
+        }
+        
+        .sidebar-menu li i {
+            margin-right: 12px;
+            width: 20px;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+        
+        /* Main Content - Enhanced with better spacing and visual hierarchy */
+        .main-content {
+            padding: 30px;
+            background-color: var(--gray);
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: var(--dark);
+            font-size: 1.8rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+        
+        .header h1 i {
+            margin-right: 15px;
+            color: var(--primary);
+            font-size: 1.5rem;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            background: white;
+            padding: 8px 15px 8px 20px;
+            border-radius: 30px;
+            box-shadow: var(--card-shadow);
+        }
+        
+        .user-info span {
+            margin-right: 12px;
+            font-weight: 500;
+        }
+        
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: var(--primary-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            font-weight: 600;
+        }
+        
+        /* Analytics Container - Enhanced with better card styling */
+        .analytics-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 25px;
+        }
+        
+        /* Search Filters - Enhanced with modern styling */
+        .search-filters {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            align-items: flex-end;
+        }
+        
+        .filter-group {
+            position: relative;
+            flex: 1;
+        }
+        
+        .filter-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 500;
+            color: var(--dark);
+            font-size: 0.9rem;
+        }
+        
+        .custom-dropdown {
+            position: relative;
+        }
+        
+        .dropdown-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            border: 1px solid #e3e6f0;
+            border-radius: 8px;
+            cursor: pointer;
+            background-color: white;
+            transition: var(--transition);
+        }
+        
+        .dropdown-header:hover {
+            border-color: var(--primary-light);
+        }
+        
+        .dropdown-options {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            background: white;
+            border: 1px solid #e3e6f0;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        
+        .dropdown-option {
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .dropdown-option:hover {
+            background-color: var(--light);
+        }
+        
+        .dropdown-option input {
+            margin-right: 12px;
+            accent-color: var(--primary);
+        }
+        
+        .dropdown-arrow {
+            transition: var(--transition);
+            color: var(--secondary);
+        }
+        
+        .dropdown-open .dropdown-arrow {
+            transform: rotate(180deg);
+            color: var(--primary);
+        }
+        
+        .dropdown-open .dropdown-options {
+            display: block;
+        }
+        
+        .selected-count {
+            font-size: 0.8rem;
+            color: var(--secondary);
+            margin-left: 8px;
+        }
+        
+        .search-btn {
+            padding: 12px 25px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+            box-shadow: 0 4px 15px rgba(78, 115, 223, 0.3);
+        }
+        
+        .search-btn:hover {
+            background-color: #3a5bc7;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(78, 115, 223, 0.4);
+        }
+        
+        /* Chart Container - Enhanced with visual elements */
+        .chart-container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: var(--card-shadow);
+            height: 500px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .chart-container h3 {
+            color: var(--dark);
+            margin-bottom: 25px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .chart-container h3 i {
+            margin-right: 15px;
+            color: var(--primary);
+        }
+        
+        #chart-wrapper {
+            position: relative;
+            z-index: 1;
+            height: calc(100% - 40px);
+        }
+        
+        #analyticsChart {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .chart-bg-icon {
+            position: absolute;
+            right: 30px;
+            top: 30px;
+            font-size: 8rem;
+            opacity: 0.03;
+            color: var(--primary);
+            z-index: 0;
+        }
+        
+        /* Loading and error states - Enhanced visuals */
+        .loading {
+            text-align: center;
+            padding: 60px 0;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+        }
+        
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary);
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            color: var(--danger);
+            text-align: center;
+            padding: 30px;
+            background-color: rgba(231, 74, 59, 0.1);
+            border-radius: 8px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 60px 0;
+            color: var(--secondary);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+        }
+        
+        .no-data i {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: var(--secondary);
+            opacity: 0.5;
+        }
+        
+        /* Responsive design */
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 240px 1fr;
+            }
+            
+            .main-content {
+                padding: 25px;
+            }
+        }
+        
+        @media (max-width: 992px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                display: none;
+            }
+            
+            .search-filters {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 15px;
+            }
+            
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .user-info {
+                align-self: flex-end;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 20px;
+            }
+            
+            .chart-container {
+                height: 400px;
+                padding: 20px;
+            }
+            
+            .chart-bg-icon {
+                font-size: 6rem;
+                right: 20px;
+                top: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Enhanced Sidebar with Logo -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <i class="fas fa-recycle"></i>
+                </div>
+                <h3>SmartBin</h3>
+            </div>
+            <div class="sidebar-menu">
+                <ul>
+                    <li><i class="fas fa-tachometer-alt"></i> Dashboard</li>
+                    <li><i class="fas fa-history"></i> Previous Readings</li>
+                    <li class="active"><i class="fas fa-chart-line"></i> Analytics</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <div class="header">
+                <h1><i class="fas fa-chart-line"></i> Analytics Dashboard</h1>
+                <div class="user-info">
+                    <span>Admin User</span>
+                    <div class="user-avatar">A</div>
+                </div>
+            </div>
+            
+            <div class="analytics-container">
+                <!-- Search Filters Section -->
+                <div class="search-filters">
+                    <div class="filter-group">
+                        <label>Select Data Categories</label>
+                        <div class="custom-dropdown" id="category-dropdown">
+                            <div class="dropdown-header" onclick="toggleDropdown('category-dropdown')">
+                                <span id="category-placeholder">Select categories</span>
+                                <span class="selected-count" id="category-count">0 selected</span>
+                                <i class="fas fa-chevron-down dropdown-arrow"></i>
+                            </div>
+                            <div class="dropdown-options" id="category-options">
+                                <div class="dropdown-option">
+                                    <input type="checkbox" id="bin-level" value="Bin_level" checked>
+                                    <label for="bin-level">Bin Level (cm)</label>
+                                </div>
+                                <div class="dropdown-option">
+                                    <input type="checkbox" id="distance" value="distance" checked>
+                                    <label for="distance">Motion Distance (cm)</label>
+                                </div>
+                                <div class="dropdown-option">
+                                    <input type="checkbox" id="odor" value="odorSensorValue" checked>
+                                    <label for="odor">Odor Sensor Value (ppm)</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>Select Time Range</label>
+                        <div class="custom-dropdown" id="timespan-dropdown">
+                            <div class="dropdown-header" onclick="toggleDropdown('timespan-dropdown')">
+                                <span id="timespan-selected">Last 1 Week</span>
+                                <i class="fas fa-chevron-down dropdown-arrow"></i>
+                            </div>
+                            <div class="dropdown-options">
+                                <div class="dropdown-option" onclick="selectTimespan('1week', 'Last 1 Week')">
+                                    Last 1 Week
+                                </div>
+                                <div class="dropdown-option" onclick="selectTimespan('1month', 'Last 1 Month')">
+                                    Last 1 Month
+                                </div>
+                                <div class="dropdown-option" onclick="selectTimespan('6months', 'Last 6 Months')">
+                                    Last 6 Months
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button id="search-btn" class="search-btn" onclick="loadAndProcessData()">
+                        <i class="fas fa-chart-bar"></i> Generate Chart
+                    </button>
+                </div>
+                
+                <!-- Chart Display Area -->
+                <div class="chart-container">
+                    <i class="fas fa-chart-pie chart-bg-icon"></i>
+                    <h3><i class="fas fa-chart-line"></i> Smart Bin Analytics</h3>
+                    <div id="chart-wrapper">
+                        <canvas id="analyticsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- All JavaScript remains exactly the same -->
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDkXl-uepyXvaumUDgBaCiWNVmqQTZLjms",
+            authDomain: "smartbinmanagemanent.firebaseapp.com",
+            databaseURL: "https://smartbinmanagemanent-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "smartbinmanagemanent",
+            storageBucket: "smartbinmanagemanent.appspot.com",
+            messagingSenderId: "254239092405",
+            appId: "1:254239092405:web:776a578dbca8121a95d8fc",
+            measurementId: "G-E5XX0BTYZ8"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        // Reference to your data
+        const binRef = database.ref('BIN1/sensorData/readings');
+        
+        // Chart instance
+        let analyticsChart = null;
+        let selectedTimespan = '1week';
+        
+        // Function to toggle dropdown
+        function toggleDropdown(id) {
+            const dropdown = document.getElementById(id);
+            dropdown.classList.toggle('dropdown-open');
+            
+            // Close other dropdowns
+            document.querySelectorAll('.custom-dropdown').forEach(dd => {
+                if (dd.id !== id) {
+                    dd.classList.remove('dropdown-open');
+                }
+            });
+        }
+        
+        // Function to select timespan
+        function selectTimespan(value, text) {
+            selectedTimespan = value;
+            document.getElementById('timespan-selected').textContent = text;
+            document.getElementById('timespan-dropdown').classList.remove('dropdown-open');
+        }
+        
+        // Function to update selected categories count and display
+        function updateCategorySelection() {
+            const checkboxes = document.querySelectorAll('#category-options input[type="checkbox"]');
+            const selected = Array.from(checkboxes).filter(cb => cb.checked);
+            
+            document.getElementById('category-count').textContent = `${selected.length} selected`;
+            
+            if (selected.length === 0) {
+                document.getElementById('category-placeholder').textContent = 'Select categories';
+            } else if (selected.length === checkboxes.length) {
+                document.getElementById('category-placeholder').textContent = 'All categories';
+            } else {
+                document.getElementById('category-placeholder').textContent = `${selected.length} categories selected`;
+            }
+        }
+        
+        // Function to get selected categories
+        function getSelectedCategories() {
+            const checkboxes = document.querySelectorAll('#category-options input[type="checkbox"]:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+        
+        // Function to format the timestamp to readable date
+        function formatDate(timestamp) {
+            const parts = timestamp.split('_');
+            const dateParts = parts[0].split('-');
+            
+            const date = new Date(
+                parseInt(dateParts[0]),
+                parseInt(dateParts[1]) - 1,
+                parseInt(dateParts[2])
+            );
+            
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+        
+        // Function to get date X days ago
+        function getDateDaysAgo(days) {
+            const date = new Date();
+            date.setDate(date.getDate() - days);
+            return date;
+        }
+        
+        // Function to filter data by time period
+        function filterDataByTimePeriod(data, period) {
+            const now = new Date();
+            let cutoffDate;
+            
+            switch(period) {
+                case '1week':
+                    cutoffDate = getDateDaysAgo(7);
+                    break;
+                case '1month':
+                    cutoffDate = getDateDaysAgo(30);
+                    break;
+                case '6months':
+                    cutoffDate = getDateDaysAgo(180);
+                    break;
+                default:
+                    cutoffDate = getDateDaysAgo(7); // Default to 1 week
+            }
+            
+            return Object.entries(data).filter(([timestamp]) => {
+                const parts = timestamp.split('_');
+                const dateParts = parts[0].split('-');
+                const recordDate = new Date(
+                    parseInt(dateParts[0]),
+                    parseInt(dateParts[1]) - 1,
+                    parseInt(dateParts[2])
+                );
+                return recordDate >= cutoffDate;
+            });
+        }
+        
+        // Function to create or update chart
+        function updateChart(filteredData, selectedCategories) {
+            const ctx = document.getElementById('analyticsChart').getContext('2d');
+            
+            // Prepare labels (dates)
+            const labels = filteredData.map(([timestamp]) => formatDate(timestamp));
+            
+            // Prepare datasets for each selected category
+            const datasets = selectedCategories.map(category => {
+                let label, data, borderColor;
+                
+                switch(category) {
+                    case 'Bin_level':
+                        label = 'Bin Level (cm)';
+                        data = filteredData.map(([, record]) => parseFloat(record.Bin_level) || 0);
+                        borderColor = '#4e73df'; // Blue
+                        break;
+                    case 'distance':
+                        label = 'Motion Distance (cm)';
+                        data = filteredData.map(([, record]) => parseFloat(record.distance) || 0);
+                        borderColor = '#1cc88a'; // Green
+                        break;
+                    case 'odorSensorValue':
+                        label = 'Odor Sensor (ppm)';
+                        data = filteredData.map(([, record]) => parseFloat(record.odorSensorValue) || 0);
+                        borderColor = '#f6c23e'; // Yellow
+                        break;
+                }
+                
+                return {
+                    label: label,
+                    data: data,
+                    borderColor: borderColor,
+                    backgroundColor: borderColor + '20', // Add opacity
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.1
+                };
+            });
+            
+            // If chart already exists, destroy it
+            if (analyticsChart) {
+                analyticsChart.destroy();
+            }
+            
+            // Create new chart
+            analyticsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        legend: {
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Function to load and process data
+        function loadAndProcessData() {
+            const selectedCategories = getSelectedCategories();
+            
+            if (selectedCategories.length === 0) {
+                alert('Please select at least one category');
+                return;
+            }
+            
+            // Show loading state
+            const chartWrapper = document.getElementById('chart-wrapper');
+            chartWrapper.innerHTML = `
+                <div class="loading">
+                    <div class="loader"></div>
+                    <p>Loading data and generating chart...</p>
+                </div>
+            `;
+            
+            binRef.once('value', (snapshot) => {
+                const data = snapshot.val();
+                
+                if (!data) {
+                    chartWrapper.innerHTML = `
+                        <div class="no-data">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <p>No data available</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Filter data by selected time period
+                const filteredData = filterDataByTimePeriod(data, selectedTimespan);
+                
+                if (filteredData.length === 0) {
+                    chartWrapper.innerHTML = `
+                        <div class="no-data">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <p>No data available for the selected time period</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Sort data by date (oldest first)
+                filteredData.sort(([timestampA], [timestampB]) => {
+                    const dateA = new Date(timestampA.replace(/_/g, ' '));
+                    const dateB = new Date(timestampB.replace(/_/g, ' '));
+                    return dateA - dateB;
+                });
+                
+                // Restore chart canvas
+                chartWrapper.innerHTML = '<canvas id="analyticsChart"></canvas>';
+                
+                // Update chart with filtered data
+                updateChart(filteredData, selectedCategories);
+                
+            }, (error) => {
+                console.error('Error loading data:', error);
+                chartWrapper.innerHTML = `
+                    <div class="error-message">
+                        Error loading data. Please try again.
+                    </div>
+                `;
+            });
+        }
+        
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.custom-dropdown')) {
+                document.querySelectorAll('.custom-dropdown').forEach(dd => {
+                    dd.classList.remove('dropdown-open');
+                });
+            }
+        });
+        
+        // Initialize the page when loaded
+        window.addEventListener('load', () => {
+            // Set up event listeners for category checkboxes
+            document.querySelectorAll('#category-options input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', updateCategorySelection);
+            });
+            
+            // Initialize category selection display
+            updateCategorySelection();
+            
+            // Navigation to dashboard
+            document.querySelector('.sidebar-menu li:nth-child(1)').addEventListener('click', () => {
+                window.location.href = 'index.html';
+            });
+            
+            // Navigation to previous readings
+            document.querySelector('.sidebar-menu li:nth-child(2)').addEventListener('click', () => {
+                window.location.href = 'readings.html';
+            });
+            
+            // Load initial data
+            loadAndProcessData();
+        });
+    </script>
+</body>
+</html>

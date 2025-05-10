@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bin Cleaning Prediction</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7fa;
+            color: #333;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2rem;
+            color: #007BFF;
+        }
+
+        p {
+            text-align: center;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            color: #555;
+        }
+
+        form {
+            width: 100%;
+            max-width: 400px;
+            background: linear-gradient(145deg, #ffffff, #e6e8ec);
+            padding: 25px 30px;
+            border-radius: 15px;
+            box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.1), -4px -4px 10px rgba(255, 255, 255, 0.7);
+        }
+
+        label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #fdfdfd;
+            box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.05), inset -2px -2px 5px rgba(255, 255, 255, 0.6);
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #007BFF;
+            box-shadow: 0 0 6px rgba(0, 123, 255, 0.3);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(145deg, #007BFF, #0056b3);
+            color: white;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.15), -3px -3px 8px rgba(255, 255, 255, 0.7);
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        #result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 10px;
+            background-color: #eaffea;
+            border: 1px solid #d4eed8;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+            font-size: 1.1rem;
+            text-align: center;
+        }
+
+        #result p {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <h1>Bin Cleaning Prediction</h1>
+        <p>Enter the bin level and odor level to get predictions for the estimated number of weekly cleanings and the estimated days left until the next cleaning.</p>
+
+        <form id="predictForm">
+            <label for="bin_level">Bin Level (0-100):</label>
+            <input type="number" step="any" id="bin_level" name="bin_level" required min="0" max="100">
+
+            <label for="odor_level">Odor Level:</label>
+            <input type="number" step="any" id="odor_level" name="odor_level" required min="0">
+
+            <button type="submit">Predict</button>
+        </form>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        document.getElementById('predictForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const bin_level = document.getElementById('bin_level').value;
+            const odor_level = document.getElementById('odor_level').value;
+
+            fetch('/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bin_level, odor_level })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('result').innerHTML = `
+                    <p><strong>Predicted Weekly Cleanings:</strong> ${data.predicted_cleanings}</p>
+                    <p><strong>Days Until Next Cleaning:</strong> ${data.days_until_next_cleaning}</p>
+                `;
+            })
+            .catch(error => {
+                document.getElementById('result').innerHTML = `<p style="color: red;">An error occurred: ${error}</p>`;
+                console.error('Error:', error);
+            });
+        });
+    </script>
+</body>
+</html>
